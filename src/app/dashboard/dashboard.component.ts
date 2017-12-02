@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { srt } from '../srt'
+import * as moment from 'moment';
+import { ProgrammeService } from '../programme.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -8,11 +10,12 @@ import { srt } from '../srt'
 })
 export class DashboardComponent implements OnInit {
 
-  series: srt[];
+  serie: srt;
 
-  constructor() { }
+  constructor(private programmeService: ProgrammeService) { }
 
   ngOnInit() {
+    this.programmeService.getProgramme().subscribe(programme => this.serie = programme);
   }
 
 }

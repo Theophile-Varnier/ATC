@@ -1,3 +1,11 @@
 <p>
   dashboard works!
 </p>
+<table>
+  <tr>
+    <th *ngFor="let indice of serie.indexes">{{indice | date: 'shortTime': '': 'fr'}}</th>
+  </tr>
+  <tr>
+    <td *ngFor="let point of serie.points">{{point.valeur | number:'1.0-2':'fr'}}</td>
+  </tr>
+</table>
