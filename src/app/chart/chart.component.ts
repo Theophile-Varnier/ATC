@@ -153,16 +153,21 @@ export class ChartComponent implements AfterViewInit, OnInit {
       }
     });*/
   }
+  
+  refreshChart(){
+	this.ec.setOption({
+	graphic: this.generateGraphic(),
+	series: [{
+      data: this.serie
+    }]
+	});
+  }
 }
 
 function onPointDragging(dataIndex: number, comp: ChartComponent, position: any, axisIndex: number) {
   this.position[axisIndex] = position[axisIndex];
   comp.serie[dataIndex] = comp.ec.convertFromPixel('grid', this.position);
-  comp.ec.setOption({
-    series: [{
-      data: comp.serie
-    }]
-  });
+  comp.refreshChart();
 }
 
 /*function onPointDragging(dataIndex: number, comp: ChartComponent) {
