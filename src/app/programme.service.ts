@@ -18,12 +18,15 @@ export class ProgrammeService {
     date.seconds(0);
     let res = new srt();
     let dateCourante = moment(date.toDate());
+    let changeProba = 0.9;
     while(dateCourante.diff(date, 'days') < 2){
-      let pt = new point();
-      pt.date = dateCourante.toDate();
-      pt.valeur = Math.random() * 40;
-      res.points.push(pt);
-      res.indexes.push(dateCourante.toDate());
+      if(Math.random() > changeProba){
+        let pt = new point();
+        pt.date = dateCourante.toDate();
+        pt.valeur = Math.random() * 40;
+        res.points.push(pt);
+        res.indexes.push(dateCourante.toDate());
+      }
       dateCourante.add(30, 'minutes');
     }
     return res;
