@@ -87,16 +87,16 @@ export class ChartComponent implements AfterViewInit, OnInit {
         console.log('next position : ' + nextPos);
         res.push({
           type: 'line',
-          invisible: true,
+          invisible: false,
           draggable: true,
           cursor: 'row-resize',
           z: 100,
           position: curPos,
           shape: {
-            x2: nextPos[0],
+            x2: nextPos[0] - curPos[0],
           },
           style: {
-            stroke: '#000'
+            stroke: '#fff'
           },
           ondrag: _.throttle(self.nes.echarts.util.curry(onPointDragging, i, self, curPos, 0), 1000 / 60)
         });
@@ -112,7 +112,7 @@ export class ChartComponent implements AfterViewInit, OnInit {
           z: 100,
           position: curPos,
           shape: {
-            y2: prevPos[1],
+            y2: prevPos[1] - curPos[1],
           },
           style: {
             stroke: '#000'
@@ -166,7 +166,15 @@ export class ChartComponent implements AfterViewInit, OnInit {
 
 function onPointDragging(dataIndex: number, comp: ChartComponent, position: any, axisIndex: number) {
   this.position[axisIndex] = position[axisIndex];
-  comp.serie[dataIndex] = comp.ec.convertFromPixel('grid', this.position);
+  let newPos = comp.ec.convertFromPixel('grid', this.position);
+  comp.serie[dataIndex] = newPos;
+  if(comp.serie[dataIndex - 1][0] >= comp.serie[dataIndex][0]){
+    comp.serie.splice(dataIndex - 1, 1);
+  }
+  if(comp.serie[dataIndex + 1][0] <= comp.serie[dataIndex][0]){
+    comp.serie.splice(dataIndex + 1, 1);
+  }
+
   comp.refreshChart();
 }
 
