@@ -1,4 +1,4 @@
 export class point{
-    date: Date;
+    date: number;
     valeur: number;
 }

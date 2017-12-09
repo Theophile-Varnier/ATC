@@ -22,10 +22,10 @@ export class ProgrammeService {
     while(dateCourante.diff(date, 'days') < 2){
       if(Math.random() > changeProba){
         let pt = new point();
-        pt.date = dateCourante.toDate();
+        pt.date = dateCourante.unix();
         pt.valeur = Math.random() * 40;
         res.points.push(pt);
-        res.indexes.push(dateCourante.toDate());
+        res.indexes.push(dateCourante.unix());
       }
       dateCourante.add(30, 'minutes');
     }

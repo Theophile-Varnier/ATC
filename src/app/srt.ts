@@ -2,7 +2,7 @@ import {point} from './point';
 
 export class srt{
     points: point[];
-    indexes: Date[];
+    indexes: number[];
 
     constructor(){
         this.points = [];

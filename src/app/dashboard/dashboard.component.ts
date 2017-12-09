@@ -15,7 +15,10 @@ export class DashboardComponent implements OnInit {
   constructor(private programmeService: ProgrammeService) { }
 
   ngOnInit() {
-    this.programmeService.getProgramme().subscribe(programme => this.serie = programme);
+    this.programmeService.getProgramme().subscribe(programme => {
+      console.log('got data from dashboard');
+      this.serie = programme;
+    });
   }
 
 }
