@@ -1,7 +1,7 @@
 import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { ProgrammeService } from '../programme.service';
 import { srt } from '../srt';
-import { map } from 'lodash';
+import { map, Dictionary } from 'lodash';
 import * as moment from 'moment';
 import { findLastIndex } from 'lodash';
 import { NgxEchartsService } from 'ngx-echarts';
@@ -13,19 +13,24 @@ import * as _ from 'lodash';
   styleUrls: ['./chart.component.css']
 })
 export class ChartComponent implements AfterViewInit, OnInit {
-  initOps = {
-    renderer: 'svg'
-  };
   chartOption: any;
-  updateOptions: any;
   serie: any;
   ec: any;
+  graphics: Dictionary<{
+    'index': number;
+    'graphics': any[];
+  }>;
   symbolSize: number;
 
   constructor(private programmeService: ProgrammeService, private nes: NgxEchartsService) { }
 
+  onChartInit(event: any) {
+    this.ec = event;
+  }
+
   ngOnInit() {
     this.symbolSize = 20;
+    let self = this;
     this.programmeService.getProgramme().subscribe(srt => {
       console.log('got data in chart');
       this.serie = [];
@@ -42,7 +47,7 @@ export class ChartComponent implements AfterViewInit, OnInit {
             }
           },
           min: this.serie[0][0],
-          max: this.serie[this.serie.length-1][0]
+          max: this.serie[this.serie.length - 1][0]
         },
         yAxis: {
           type: 'value'
@@ -62,41 +67,15 @@ export class ChartComponent implements AfterViewInit, OnInit {
 
   ngAfterViewInit() {
     let self = this;
-    this.ec.setOption({
-      graphic: this.generateGraphic()
-    });
-  }
-
-  generateGraphic() {
-    let res = [];
-    let self = this;
-    for (let i = 0; i < this.serie.length; ++i) {
-      let curPos = this.ec.convertToPixel('grid', this.serie[i]);
-      if (i != this.serie.length - 1) {
-        let nextPos = this.ec.convertToPixel('grid', this.serie[i + 1]);
+    this.graphics = _.keyBy(_.map(this.serie, function (item, index) {
+      let res = [];
+      let curPos = self.ec.convertToPixel('grid', item);
+      if (index != 0) {
+        let prevPos = self.ec.convertToPixel('grid', self.serie[index - 1]);
         res.push({
-          id: 'h' + i,
+          id: 'v' + index,
           type: 'line',
-          invisible: true,
-          draggable: true,
-          cursor: 'row-resize',
-          z: 100,
-          position: curPos,
-          shape: {
-            x2: nextPos[0] - curPos[0],
-          },
-          style: {
-            stroke: '#fff'
-          },
-          ondrag: _.throttle(self.nes.echarts.util.curry(onPointDragging, i, self, curPos, 0), 1000 / 60)
-        });
-      }
-      if (i != 0) {
-        let prevPos = this.ec.convertToPixel('grid', this.serie[i - 1]);
-        res.push({
-          id: 'v'+i,
-          type: 'line',
-          invisible: true,
+          invisible: false,
           draggable: true,
           cursor: 'col-resize',
           z: 100,
@@ -107,36 +86,43 @@ export class ChartComponent implements AfterViewInit, OnInit {
           style: {
             stroke: '#000'
           },
-          ondrag: _.throttle(self.nes.echarts.util.curry(onPointDragging, i, self, curPos, 1), 1000 / 60),
-          ondragend: self.nes.echarts.util.curry(removeObsolete, i, self)
+          ondrag: _.throttle(self.nes.echarts.util.curry(onPointDragging, index, self, curPos, 1), 1000 / 60),
+          ondragend: self.nes.echarts.util.curry(removeObsolete, index, self)
         });
       }
-    }
-    return res;
-  }
+      if (index != self.serie.length - 1) {
+        let nextPos = self.ec.convertToPixel('grid', self.serie[index + 1]);
+        res.push({
+          id: 'h' + index,
+          type: 'line',
+          invisible: false,
+          draggable: true,
+          cursor: 'row-resize',
+          z: 100,
+          position: curPos,
+          shape: {
+            x2: nextPos[0] - curPos[0],
+          },
+          style: {
+            stroke: '#fff'
+          },
+          ondrag: _.throttle(self.nes.echarts.util.curry(onPointDragging, index, self, curPos, 0), 1000 / 60)
+        });
+      }
+      return {
+        'index': index,
+        'graphics': res
+      };
+    }), obj => obj.index);
 
-  onChartEvent(event: any) {
-    console.log(event);
+    this.ec.setOption({
+      graphic: _.flatMap(this.graphics, kvp => kvp.graphics)
+    });
   }
-
-  onChartInit(event: any) {
-    this.ec = event;
-    let zr = this.ec.getZr();
-    let self = this;
-  }
-
   refreshChart() {
     let currentGraphics = this.ec.getOption().graphic[0].elements;
     let count = this.serie.length;
     this.ec.setOption({
-      graphic: _.concat(this.generateGraphic(), _.filter(currentGraphics, function(elem){
-        return parseInt(elem.id[1]) > count;
-      }).map(function(elem){
-        return {
-          id: elem.id,
-          $action: 'remove'
-        };
-      })),
       series: [{
         data: this.serie
       }]
