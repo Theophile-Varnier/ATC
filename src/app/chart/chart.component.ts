@@ -16,10 +16,7 @@ export class ChartComponent implements AfterViewInit, OnInit {
   chartOption: any;
   serie: any;
   ec: any;
-  graphics: Dictionary<{
-    'index': number;
-    'graphics': any[];
-  }>;
+  graphics: any;
   symbolSize: number;
 
   constructor(private programmeService: ProgrammeService, private nes: NgxEchartsService) { }
@@ -65,64 +62,81 @@ export class ChartComponent implements AfterViewInit, OnInit {
     });
   }
 
-  ngAfterViewInit() {
+  generateGraphicsForItems(item, index) {
     let self = this;
-    this.graphics = _.keyBy(_.map(this.serie, function (item, index) {
-      let res = [];
-      let curPos = self.ec.convertToPixel('grid', item);
-      if (index != 0) {
-        let prevPos = self.ec.convertToPixel('grid', self.serie[index - 1]);
-        res.push({
-          id: 'v' + index,
-          type: 'line',
-          invisible: false,
-          draggable: true,
-          cursor: 'col-resize',
-          z: 100,
-          position: curPos,
-          shape: {
-            y2: prevPos[1] - curPos[1],
-          },
-          style: {
-            stroke: '#000'
-          },
-          ondrag: _.throttle(self.nes.echarts.util.curry(onPointDragging, index, self, curPos, 1), 1000 / 60),
-          ondragend: self.nes.echarts.util.curry(removeObsolete, index, self)
-        });
-      }
-      if (index != self.serie.length - 1) {
-        let nextPos = self.ec.convertToPixel('grid', self.serie[index + 1]);
-        res.push({
-          id: 'h' + index,
-          type: 'line',
-          invisible: false,
-          draggable: true,
-          cursor: 'row-resize',
-          z: 100,
-          position: curPos,
-          shape: {
-            x2: nextPos[0] - curPos[0],
-          },
-          style: {
-            stroke: '#fff'
-          },
-          ondrag: _.throttle(self.nes.echarts.util.curry(onPointDragging, index, self, curPos, 0), 1000 / 60)
-        });
-      }
-      return {
-        'index': index,
-        'graphics': res
-      };
-    }), obj => obj.index);
+    let res = [];
+    let curPos = self.ec.convertToPixel('grid', item);
+    if (index != 0) {
+      let prevPos = self.ec.convertToPixel('grid', self.serie[index - 1]);
+      res.push({
+        id: 'v' + index,
+        type: 'line',
+        invisible: true,
+        draggable: true,
+        cursor: 'col-resize',
+        z: 100,
+        position: curPos,
+        shape: {
+          y2: prevPos[1] - curPos[1],
+        },
+        style: {
+          stroke: '#000'
+        },
+        ondrag: _.throttle(self.nes.echarts.util.curry(onPointDragging, index, self, curPos, 1), 1000 / 60),
+        ondragend: self.nes.echarts.util.curry(removeObsolete, index, self)
+      });
+    }
+    if (index != self.serie.length - 1) {
+      let nextPos = self.ec.convertToPixel('grid', self.serie[index + 1]);
+      res.push({
+        id: 'h' + index,
+        type: 'line',
+        invisible: true,
+        draggable: true,
+        cursor: 'row-resize',
+        z: 100,
+        position: curPos,
+        shape: {
+          x2: nextPos[0] - curPos[0],
+        },
+        style: {
+          stroke: '#fff'
+        },
+        ondrag: _.throttle(self.nes.echarts.util.curry(onPointDragging, index, self, curPos, 0), 1000 / 60),
+        ondragend: self.nes.echarts.util.curry(removeObsolete, index, self)
+      });
+    }
+    return res;
+  }
 
+  generateAllGraphics() {
+    let self = this;
+    this.graphics = _.reduce(this.serie, function (res, item, index) {
+      res[index] = self.generateGraphicsForItems(item, index);
+      return res;
+    }, []);
+  }
+
+  ngAfterViewInit() {
+    this.generateAllGraphics();
     this.ec.setOption({
-      graphic: _.flatMap(this.graphics, kvp => kvp.graphics)
+      graphic: _.flatMap(this.graphics)
     });
   }
+
   refreshChart() {
     let currentGraphics = this.ec.getOption().graphic[0].elements;
+    this.generateAllGraphics();
     let count = this.serie.length;
     this.ec.setOption({
+      graphic: _.flatMap(this.graphics).concat(_.filter(currentGraphics, function (elem) {
+        return elem.id[1] >= count;
+      }).map(function (item) {
+        return {
+          id: item.id,
+          $action: 'remove'
+        }
+      })),
       series: [{
         data: this.serie
       }]
